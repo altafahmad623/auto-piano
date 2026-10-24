@@ -9,6 +9,7 @@ import { createPianoSampler } from '../player';
 import type { Hand, Song } from '../types';
 import { eventRange, Keyboard, type KeyFlash } from './Keyboard';
 import { ErrorBanner } from './ErrorBanner';
+import { InfoTip } from './InfoTip';
 
 interface Props {
   song: Song;
@@ -170,16 +171,21 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
       </header>
 
       {!running && !starting && !done && (
-        <div className="setup-panel">
-          <label>
-            Hand{' '}
+        <div className="setup-panel setup-panel-vertical">
+          <div className="field-row">
+            <label>
+              Hand <InfoTip tip="Practice only the right-hand or left-hand line of the song. Notes for the chosen hand appear on the keyboard." />
+            </label>
             <select value={hand} onChange={(e) => setHand(e.target.value as Hand)}>
               <option value="R">Right (R)</option>
               <option value="L">Left (L)</option>
             </select>
-          </label>
-          <label>
-            Input source{' '}
+          </div>
+          <div className="field-row">
+            <label>
+              Input source{' '}
+              <InfoTip tip="Microphone: play your real piano, the app listens. Computer keyboard: type the letter shown on each key (a = C4) instead." />
+            </label>
             <select
               value={inputSource}
               onChange={(e) => setInputSource(e.target.value as 'mic' | 'keyboard')}
@@ -187,9 +193,12 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
               <option value="mic">Microphone (real piano)</option>
               <option value="keyboard">Computer keyboard (a=C4)</option>
             </select>
-          </label>
-          <label>
-            Device profile{' '}
+          </div>
+          <div className="field-row">
+            <label>
+              Device profile{' '}
+              <InfoTip tip="Optional. If your piano consistently reads as a different pitch, calibrate it once and pick that profile here so matches still count." />
+            </label>
             <select value={profileName} onChange={(e) => setProfileName(e.target.value)}>
               <option value="">None</option>
               {profiles.map((p) => (
@@ -198,20 +207,22 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
                 </option>
               ))}
             </select>
-          </label>
-          <button onClick={onCalibrate}>Calibrate new device…</button>
-          {profile && (
-            <button
-              className="secondary"
-              onClick={() => {
-                deleteProfile(profile.name);
-                setProfiles(listProfiles());
-                setProfileName('');
-              }}
-            >
-              Delete “{profile.name}”
-            </button>
-          )}
+          </div>
+          <div className="actions-row">
+            <button onClick={onCalibrate}>Calibrate new device…</button>
+            {profile && (
+              <button
+                className="secondary"
+                onClick={() => {
+                  deleteProfile(profile.name);
+                  setProfiles(listProfiles());
+                  setProfileName('');
+                }}
+              >
+                Delete “{profile.name}”
+              </button>
+            )}
+          </div>
           <button className="primary" onClick={start}>
             Start practice
           </button>
