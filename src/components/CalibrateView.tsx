@@ -5,6 +5,7 @@ import { ErrorBanner } from './ErrorBanner';
 import type { NoteEvent } from '../types';
 import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
+import { InfoTip } from './InfoTip';
 
 interface Props {
   onDone: (profile: DeviceProfile | null) => void;
@@ -120,14 +121,14 @@ export function CalibrateView({ onDone }: Props) {
             />
           </label>
           <label>
-            Range{' '}
+            Range <InfoTip tip="Which keys you'll play during calibration. Only the part of the piano you practice needs calibrating — keys outside this range still work, they're just matched by pitch as heard." />
             <select value={startOctave} onChange={(e) => setStartOctave(Number(e.target.value))}>
-              {[1, 2, 3, 4, 5, 6].map((o) => (
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((o) => (
                 <option key={o} value={o}>C{o} –</option>
               ))}
             </select>
             <select value={octaves} onChange={(e) => setOctaves(Number(e.target.value))}>
-              {[1, 2, 3].map((o) => (
+              {[1, 2, 3, 4, 5, 6, 7].map((o) => (
                 <option key={o} value={o}>{o} octave{o > 1 ? 's' : ''}</option>
               ))}
             </select>
@@ -136,8 +137,9 @@ export function CalibrateView({ onDone }: Props) {
             Start calibration
           </button>
           <p className="hint">
-            Play the shown keys one by one, in order. Each detected note is stored
-            for this device.
+            Play the shown keys one by one, in order. Each key you play is recorded
+            so practice still counts even if your piano reads as a different pitch.
+            Skip any key you can't play.
           </p>
         </div>
       )}
