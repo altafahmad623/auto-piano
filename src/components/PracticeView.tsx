@@ -4,7 +4,7 @@ import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
 import { PracticeMatcher } from '../matcher';
 import type { Hand, Song } from '../types';
-import { NoteStrip } from './NoteStrip';
+import { eventRange, Keyboard, type KeyFlash } from './Keyboard';
 
 interface Props {
   song: Song;
@@ -23,9 +23,12 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
   const [mistakes, setMistakes] = useState(0);
   const [lastHeard, setLastHeard] = useState<string>('—');
   const [feedback, setFeedback] = useState<string>('');
+  const [keyFlash, setKeyFlash] = useState<KeyFlash | null>(null);
+  const flashTimer = useRef<number | null>(null);
   const detectorRef = useRef<LiveDetector | null>(null);
 
   const profile = profiles.find((p) => p.name === profileName);
+
   const playable = useMemo(
     () =>
       song.events
@@ -33,10 +36,20 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
         .sort((a, b) => a.startStep - b.startStep),
     [song, hand],
   );
+  const [lo, hi] = eventRange(playable);
 
   useEffect(() => {
-    return () => detectorRef.current?.stop();
+    return () => {
+      detectorRef.current?.stop();
+      if (flashTimer.current !== null) clearTimeout(flashTimer.current);
+    };
   }, []);
+
+  function flash(midi: number, kind: 'hit' | 'miss') {
+    setKeyFlash({ midi, kind });
+    if (flashTimer.current !== null) clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setKeyFlash(null), 180);
+  }
 
   function stop() {
     detectorRef.current?.stop();
@@ -57,6 +70,9 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     const detector = new LiveDetector((onset: NoteOnset) => {
       setLastHeard(midiToName(onset.midi));
       const result = m.feed(onset.midi, onset.time);
+      if (result === 'hit' || result === 'chord-progress') {
+        flash(onset.midi, 'hit');
+      }
       if (result === 'hit') {
         setIdx(Math.round(m.progress * m.total));
         setFeedback('');
@@ -66,8 +82,9 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
           setRunning(false);
         }
       } else if (result === 'miss') {
+        flash(onset.midi, 'miss');
         setMistakes(m.mistakeCount);
-        setFeedback(`Expected ${m.current?.midis.map(midiToName).join('+')}`);
+        setFeedback(`Expected ${m.current?.midis.map(midiToName).join(' + ')}`);
       }
     });
     detectorRef.current = detector;
@@ -159,7 +176,16 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
           </div>
           <div className="heard">Heard: {lastHeard}</div>
           {feedback && <div className="feedback">{feedback}</div>}
-          <NoteStrip events={playable} currentIndex={done ? playable.length : idx} />
+          <div className="keyboard-wrap">
+            <Keyboard
+              lo={lo}
+              hi={hi}
+              events={playable}
+              mode="wait"
+              currentIdx={done ? playable.length : idx}
+              keyFlash={keyFlash}
+            />
+          </div>
           <div className="stats-row">
             <span>
               {done ? playable.length : idx} / {playable.length}

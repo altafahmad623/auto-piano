@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { calibrationRange, type DeviceProfile } from '../calibration';
+import { Keyboard } from './Keyboard';
+import type { NoteEvent } from '../types';
 import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
 
@@ -88,6 +90,15 @@ export function CalibrateView({ onDone }: Props) {
   const expectedName = keyIdx < keys.length ? midiToName(keys[keyIdx]) : null;
   const collected = Object.keys(offsets).length + skipped.size;
 
+  const lo = keys.length > 0 ? keys[0] : 60;
+  const hi = keys.length > 0 ? keys[keys.length - 1] : 72;
+  const remaining: NoteEvent[] = keys.slice(keyIdx).map((midi, i) => ({
+    hand: 'R',
+    midis: [midi],
+    startStep: i,
+    steps: 1,
+  }));
+
   return (
     <div className="view">
       <header className="view-header">
@@ -134,6 +145,16 @@ export function CalibrateView({ onDone }: Props) {
         <>
           <div className="big-note">{expectedName ?? 'Done!'}</div>
           <div className="heard">Heard: {lastHeard}</div>
+          <div className="keyboard-wrap">
+            <Keyboard
+              lo={lo}
+              hi={hi}
+              events={remaining}
+              mode="wait"
+              currentIdx={0}
+              highlightMidi={expectedName ? keys[keyIdx] : null}
+            />
+          </div>
           <p className="hint">
             {collected} / {keys.length} keys recorded
             {skipped.size > 0 ? ` · ${skipped.size} skipped` : ''}

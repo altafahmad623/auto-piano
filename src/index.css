@@ -168,44 +168,78 @@ select {
   margin-bottom: 12px;
 }
 
-.note-strip {
+.keyboard-wrap {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding: 16px 8px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  justify-content: center;
   margin-bottom: 16px;
 }
 
-.note-chip {
-  flex-shrink: 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  font-variant-numeric: tabular-nums;
-  font-size: 15px;
+.keyboard {
+  max-width: 100%;
+  height: 460px;
 }
 
-.note-chip.past {
-  opacity: 0.35;
+.fall-zone {
+  fill: #0d0f14;
 }
 
-.note-chip.current {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+.key {
+  stroke: var(--border);
+}
+
+.key.white {
+  fill: #f5f3ee;
+}
+
+.key.black {
+  fill: #1a1d26;
+}
+
+.key.flash-hit {
+  fill: var(--good);
+}
+
+.key.flash-miss {
+  fill: var(--bad);
+}
+
+.key.key-highlight {
+  fill: var(--accent);
+}
+
+.key-label {
+  fill: #666;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.note-block.hand-R {
+  fill: #ffd166;
+}
+
+.note-block.hand-L {
+  fill: #b58cff;
+}
+
+.note-block.current {
+  animation: pulse 1.1s ease-in-out infinite;
+}
+
+.finger-label {
+  fill: #1c1f28;
+  font-size: 16px;
   font-weight: 700;
+  pointer-events: none;
 }
 
-.note-chip.hand-L {
-  border-bottom: 3px solid #b58cff;
-}
-
-.note-chip.hand-R {
-  border-bottom: 3px solid #ffd166;
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .stats-row {

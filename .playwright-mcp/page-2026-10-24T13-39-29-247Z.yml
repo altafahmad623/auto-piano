@@ -1,0 +1,12 @@
+- generic [ref=f3e3]:
+  - banner [ref=f3e4]:
+    - heading "Auto Piano" [level=1] [ref=f3e5]
+    - button "Calibrate device" [ref=f3e6] [cursor=pointer]
+  - list [ref=f3e7]:
+    - listitem [ref=f3e8]:
+      - generic [ref=f3e9]:
+        - strong [ref=f3e10]: Fur elise
+        - generic [ref=f3e11]: A minor · 3/4 · 120 BPM
+      - generic [ref=f3e12]:
+        - button "Listen" [ref=f3e13] [cursor=pointer]
+        - button "Practice" [ref=f3e14] [cursor=pointer]

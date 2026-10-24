@@ -46,6 +46,7 @@ Rules:
 - `-` holds the previous note of that hand for one step.
 - Optional octave digit after a letter: `E5`. Defaults: R hand octave 4,
   L hand octave 3.
+- Optional fingering suffix `:n` (1–5, thumb=1): `E:1`, `[C:1E:3G:5]`.
 
 Example: `songs/fur-elise.txt`.
 

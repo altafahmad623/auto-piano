@@ -1,0 +1,28 @@
+- generic [ref=f2e15]:
+  - banner [ref=f2e16]:
+    - button "← Library" [ref=f2e17] [cursor=pointer]
+    - heading "Fur elise — Practice" [level=2] [ref=f2e18]
+    - generic [ref=f2e19]: Right hand
+  - generic [ref=f2e27]: E4
+  - generic [ref=f2e28]: "Heard: —"
+  - img [ref=f2e30]:
+    - generic [ref=f2e42]: C4
+    - generic [ref=f2e44]: D4
+    - generic [ref=f2e46]: E4
+    - generic [ref=f2e48]: F4
+    - generic [ref=f2e50]: G4
+    - generic [ref=f2e52]: A4
+    - generic [ref=f2e54]: B4
+    - generic [ref=f2e56]: C5
+    - generic [ref=f2e58]: D5
+    - generic [ref=f2e60]: E5
+    - generic [ref=f2e62]: F5
+    - generic [ref=f2e64]: G5
+    - generic [ref=f2e66]: A5
+    - generic [ref=f2e68]: B5
+  - generic [ref=f2e90]:
+    - generic [ref=f2e91]: 0 / 30
+    - generic [ref=f2e92]: "Mistakes: 0"
+  - generic [ref=f2e93]:
+    - button "Skip" [ref=f2e94] [cursor=pointer]
+    - button "Stop" [ref=f2e95] [cursor=pointer]

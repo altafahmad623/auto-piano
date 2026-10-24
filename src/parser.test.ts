@@ -56,6 +56,16 @@ describe('parseSong', () => {
     expect(chord.events[0].steps).toBe(2); // chord + hold
   });
 
+  it('parses optional fingering suffixes', () => {
+    const fing = parseSong('R: E:1 D#:2 [C:1E:3G:5] |', 'fingers');
+    expect(fing.events[0].fingers).toEqual([1]);
+    expect(fing.events[1].fingers).toEqual([2]);
+    expect(fing.events[2].fingers).toEqual([1, 3, 5]);
+    // Plain notes keep undefined fingers.
+    const plain = parseSong('R: E D |', 'plain');
+    expect(plain.events[0].fingers).toEqual([undefined]);
+  });
+
   it('treats missing L lines as rests', () => {
     const only = parseSong('R: C D | E F |', 'right only');
     expect(only.events.every((e) => e.hand === 'R')).toBe(true);

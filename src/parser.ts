@@ -14,22 +14,24 @@ import type { Hand, NoteEvent, Song } from './types';
  *   one step each). Chords use brackets: "[CEG]" = C, E, G together (one step).
  * - '-' holds the previous note of that hand for one step.
  * - Optional octave digit after a letter: "E5", "B4". Defaults: R hand = 4, L hand = 3.
+ * - Optional fingering suffix `:n` (1–5, thumb=1): "E:1", "[C:1E:3G:5]".
  * - R and L lines pair up by order of appearance; each pair shares the same
  *   measures (a hand missing a line rests).
  * - Each step = one eighth note at Tempo.
  */
 
-const LETTER_RE = /([A-G])([#b]?)(\d?)/g;
+const LETTER_RE = /([A-G])([#b]?)(\d?)(?::([1-5]))?/g;
 const PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
 interface ParsedNote {
   midi: number;
-  octaveExplicit: boolean;
+  finger?: number;
 }
 
 interface HandToken {
   kind: 'notes' | 'hold' | 'chord';
   midis: number[];
+  fingers: (number | undefined)[];
   steps: number;
 }
 
@@ -44,23 +46,33 @@ function parseNoteGroup(text: string, defaultOctave: number): ParsedNote[] {
   let m: RegExpExecArray | null;
   while ((m = LETTER_RE.exec(text)) !== null) {
     const octave = m[3] ? parseInt(m[3], 10) : defaultOctave;
-    notes.push({ midi: noteToMidi(m[1], m[2], octave), octaveExplicit: !!m[3] });
+    notes.push({ midi: noteToMidi(m[1], m[2], octave), finger: m[4] ? parseInt(m[4], 10) : undefined });
   }
   return notes;
 }
 
 function parseToken(token: string, defaultOctave: number): HandToken {
   if (token === '-') {
-    return { kind: 'hold', midis: [], steps: 1 };
+    return { kind: 'hold', midis: [], fingers: [], steps: 1 };
   }
   if (token.startsWith('[') && token.endsWith(']')) {
-    const midis = parseNoteGroup(token.slice(1, -1), defaultOctave).map((n) => n.midi);
-    if (midis.length === 0) throw new Error(`Empty chord token: ${token}`);
-    return { kind: 'chord', midis, steps: 1 };
+    const group = parseNoteGroup(token.slice(1, -1), defaultOctave);
+    if (group.length === 0) throw new Error(`Empty chord token: ${token}`);
+    return {
+      kind: 'chord',
+      midis: group.map((n) => n.midi),
+      fingers: group.map((n) => n.finger),
+      steps: 1,
+    };
   }
   const notes = parseNoteGroup(token, defaultOctave);
   if (notes.length === 0) throw new Error(`Unrecognized token: ${token}`);
-  return { kind: 'notes', midis: notes.map((n) => n.midi), steps: notes.length };
+  return {
+    kind: 'notes',
+    midis: notes.map((n) => n.midi),
+    fingers: notes.map((n) => n.finger),
+    steps: notes.length,
+  };
 }
 
 /** Split a line's token stream into measures (array of token arrays). */
@@ -148,16 +160,18 @@ export function parseSong(raw: string, title: string): Song {
             const ev: NoteEvent = {
               hand,
               midis: tok.midis,
+              fingers: tok.fingers,
               startStep: stepCursor + localStep,
               steps: 1,
             };
             events.push(ev);
             lastEvent[hand] = ev;
           } else {
-            for (const midi of tok.midis) {
+            for (let k = 0; k < tok.midis.length; k++) {
               const ev: NoteEvent = {
                 hand,
-                midis: [midi],
+                midis: [tok.midis[k]],
+                fingers: [tok.fingers[k]],
                 startStep: stepCursor + localStep,
                 steps: 1,
               };

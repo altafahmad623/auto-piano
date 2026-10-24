@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { midiToName } from '../parser';
-import { startListenSession, stepDuration } from '../player';
+import { startListenSession } from '../player';
 import type { ListenSession } from '../player';
 import type { Song } from '../types';
-import { NoteStrip } from './NoteStrip';
+import { eventRange, Keyboard } from './Keyboard';
 
 interface Props {
   song: Song;
@@ -12,7 +11,6 @@ interface Props {
 
 export function ListenView({ song, onBack }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'ended'>('idle');
-  const [highlight, setHighlight] = useState(-1);
   const [cursorStep, setCursorStep] = useState(0);
   const sessionRef = useRef<ListenSession | null>(null);
 
@@ -25,24 +23,19 @@ export function ListenView({ song, onBack }: Props) {
 
   useEffect(() => {
     if (status !== 'playing') return;
-    const stepDur = stepDuration(song);
-    const id = window.setInterval(() => {
-      const step = sessionRef.current?.currentStep() ?? 0;
-      setCursorStep(step);
-      let idx = -1;
-      song.events.forEach((ev, i) => {
-        if (ev.startStep <= step + 0.001) idx = i;
-      });
-      setHighlight(idx);
-    }, Math.max(60, stepDur * 200));
-    return () => clearInterval(id);
-  }, [status, song]);
+    let raf = 0;
+    const tick = () => {
+      setCursorStep(sessionRef.current?.currentStep() ?? 0);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [status]);
 
   function stop() {
     sessionRef.current?.stop();
     sessionRef.current = null;
     setStatus('idle');
-    setHighlight(-1);
     setCursorStep(0);
   }
 
@@ -61,10 +54,7 @@ export function ListenView({ song, onBack }: Props) {
     }
   }
 
-  const currentNames =
-    highlight >= 0 && song.events[highlight]
-      ? song.events[highlight].midis.map(midiToName).join(' + ')
-      : '—';
+  const [lo, hi] = eventRange(song.events);
 
   return (
     <div className="view">
@@ -87,10 +77,17 @@ export function ListenView({ song, onBack }: Props) {
           </button>
         )}
       </header>
-      <div className="big-note">{currentNames}</div>
-      <NoteStrip events={song.events} currentIndex={highlight} />
+      <div className="keyboard-wrap">
+        <Keyboard
+          lo={lo}
+          hi={hi}
+          events={song.events}
+          mode="fall"
+          cursorStep={cursorStep}
+        />
+      </div>
       <p className="hint">
-        step {cursorStep.toFixed(1)} / {song.totalSteps} · {song.key} · {song.tempo} BPM
+        {song.key} · {song.tempo} BPM · step {cursorStep.toFixed(1)} / {song.totalSteps}
       </p>
     </div>
   );
