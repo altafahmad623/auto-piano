@@ -232,6 +232,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
               mode="wait"
               currentIdx={done ? playable.length : idx}
               keyFlash={keyFlash}
+              showKeyLetters={inputSource === 'keyboard'}
             />
           </div>
           <div className="stats-row">

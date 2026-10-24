@@ -1,0 +1,43 @@
+- generic [ref=e17]:
+  - banner [ref=e18]:
+    - button "← Library" [ref=e19] [cursor=pointer]
+    - heading "Free play" [level=2] [ref=e20]
+    - generic [ref=e21]: a = C4 · interleaved mapping
+  - generic [ref=e22]: —
+  - img [ref=e24]:
+    - generic [ref=e26]: C4a
+    - generic [ref=e28]: D4s
+    - generic [ref=e30]: E4d
+    - generic [ref=e32]: F4f
+    - generic [ref=e34]: G4g
+    - generic [ref=e36]: A4h
+    - generic [ref=e38]: B4j
+    - generic [ref=e40]: C5k
+    - generic [ref=e42]: D5l
+    - generic [ref=e44]: E5;
+    - generic [ref=e46]: F5
+    - generic [ref=e48]: G5
+    - generic [ref=e50]: A5
+    - generic [ref=e52]: B5
+    - generic [ref=e54]: C6
+    - generic [ref=e56]: D6
+    - generic [ref=e58]: E6
+    - generic [ref=e60]: F6
+    - generic [ref=e62]: G6
+    - generic [ref=e64]: A6
+    - generic [ref=e66]: B6
+    - generic [ref=e68]: wC#4
+    - generic [ref=e70]: eD#4
+    - generic [ref=e72]: tF#4
+    - generic [ref=e74]: yG#4
+    - generic [ref=e76]: uA#4
+    - generic [ref=e78]: oC#5
+    - generic [ref=e80]: pD#5
+    - generic [ref=e82]: F#5
+    - generic [ref=e84]: G#5
+    - generic [ref=e86]: A#5
+    - generic [ref=e88]: C#6
+    - generic [ref=e90]: D#6
+    - generic [ref=e92]: F#6
+    - generic [ref=e94]: G#6
+    - generic [ref=e96]: A#6

@@ -213,6 +213,21 @@ select {
   pointer-events: none;
 }
 
+.key-label.black-key-label {
+  fill: #9aa1b2;
+  font-size: 11px;
+}
+
+.key-letter {
+  fill: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.key-name-black {
+  font-size: 10px;
+}
+
 .note-block.hand-R {
   fill: #ffd166;
 }

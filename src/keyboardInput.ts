@@ -10,6 +10,12 @@ export function keyToMidi(key: string): number | null {
   return idx === -1 ? null : C4 + idx;
 }
 
+/** Inverse of keyToMidi: 'a' row letter for a MIDI number in range, else null. */
+export function midiToKey(midi: number): string | null {
+  const idx = midi - C4;
+  return idx < 0 || idx >= KEY_ORDER.length ? null : KEY_ORDER[idx];
+}
+
 /** Tracks keydown/keyup on window; ignores auto-repeat. */
 export class KeyboardInput {
   private readonly down = new Set<string>();

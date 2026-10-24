@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { midiToKey } from '../keyboardInput';
 import { midiToName } from '../parser';
 import type { NoteEvent } from '../types';
 
@@ -78,6 +79,8 @@ interface Props {
   keyFlash?: KeyFlash | null;
   /** Persistent highlight on a key (calibration: the key to play next). */
   highlightMidi?: number | null;
+  /** Show the computer-keyboard letter for each mapped key. */
+  showKeyLetters?: boolean;
 }
 
 /** MIDI range covering all events (min/max). */
@@ -104,6 +107,7 @@ export function Keyboard({
   cursorStep,
   keyFlash,
   highlightMidi,
+  showKeyLetters,
 }: Props) {
   const keys = useMemo(() => buildKeys(lo, hi), [lo, hi]);
   const keyByMidi = useMemo(() => new Map(keys.map((k) => [k.midi, k])), [keys]);
@@ -199,15 +203,48 @@ export function Keyboard({
                 flash === 'hit' ? 'flash-hit' : flash === 'miss' ? 'flash-miss' : ''
               }`}
             />
-            {!k.black && (
+            {k.black && (
               <text
                 x={k.x + k.w / 2}
-                y={FALL_ZONE + k.h - 8}
+                y={FALL_ZONE + k.h / 2}
                 textAnchor="middle"
-                className="key-label"
+                className="key-label black-key-label"
               >
-                {midiToName(k.midi)}
+                {showKeyLetters && midiToKey(k.midi) ? (
+                  <>
+                    <tspan x={k.x + k.w / 2} dy="-9" className="key-letter">
+                      {midiToKey(k.midi)}
+                    </tspan>
+                    <tspan x={k.x + k.w / 2} dy="13" className="key-name-black">
+                      {midiToName(k.midi)}
+                    </tspan>
+                  </>
+                ) : (
+                  midiToName(k.midi)
+                )}
               </text>
+            )}
+            {!k.black && (
+              <>
+                {showKeyLetters && midiToKey(k.midi) && (
+                  <text
+                    x={k.x + k.w / 2}
+                    y={FALL_ZONE + k.h - 26}
+                    textAnchor="middle"
+                    className="key-letter"
+                  >
+                    {midiToKey(k.midi)}
+                  </text>
+                )}
+                <text
+                  x={k.x + k.w / 2}
+                  y={FALL_ZONE + k.h - 8}
+                  textAnchor="middle"
+                  className="key-label"
+                >
+                  {midiToName(k.midi)}
+                </text>
+              </>
             )}
           </g>
         );

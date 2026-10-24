@@ -50,7 +50,15 @@ export function FreePlayView({ onBack }: Props) {
       <div className="big-note">{lastNote}</div>
       {!loaded && <p className="hint">Loading piano samples…</p>}
       <div className="keyboard-wrap">
-        <Keyboard lo={60} hi={76} events={[]} mode="wait" currentIdx={0} keyFlash={flash} />
+        <Keyboard
+          lo={60}
+          hi={76}
+          events={[]}
+          mode="wait"
+          currentIdx={0}
+          keyFlash={flash}
+          showKeyLetters
+        />
       </div>
     </div>
   );
