@@ -3,6 +3,7 @@ import { startListenSession } from '../player';
 import type { ListenSession } from '../player';
 import type { Song } from '../types';
 import { eventRange, Keyboard } from './Keyboard';
+import { ErrorBanner } from './ErrorBanner';
 
 interface Props {
   song: Song;
@@ -12,6 +13,7 @@ interface Props {
 export function ListenView({ song, onBack }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'ended'>('idle');
   const [cursorStep, setCursorStep] = useState(0);
+  const [error, setError] = useState<string>('');
   const sessionRef = useRef<ListenSession | null>(null);
 
   useEffect(() => {
@@ -37,10 +39,12 @@ export function ListenView({ song, onBack }: Props) {
     sessionRef.current = null;
     setStatus('idle');
     setCursorStep(0);
+    setError('');
   }
 
   async function play() {
     setStatus('loading');
+    setError('');
     try {
       sessionRef.current?.stop();
       sessionRef.current = await startListenSession(song, {
@@ -50,7 +54,7 @@ export function ListenView({ song, onBack }: Props) {
     } catch (err) {
       console.error(err);
       setStatus('idle');
-      alert('Failed to load piano samples. Check network connection.');
+      setError('Failed to load piano samples. Check network connection.');
     }
   }
 
@@ -77,6 +81,7 @@ export function ListenView({ song, onBack }: Props) {
           </button>
         )}
       </header>
+      {error && <ErrorBanner message={error} />}
       <div className="keyboard-wrap">
         <Keyboard
           lo={lo}

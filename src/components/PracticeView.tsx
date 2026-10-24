@@ -8,6 +8,7 @@ import { PracticeMatcher } from '../matcher';
 import { createPianoSampler } from '../player';
 import type { Hand, Song } from '../types';
 import { eventRange, Keyboard, type KeyFlash } from './Keyboard';
+import { ErrorBanner } from './ErrorBanner';
 
 interface Props {
   song: Song;
@@ -27,6 +28,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
   const [mistakes, setMistakes] = useState(0);
   const [lastHeard, setLastHeard] = useState<string>('—');
   const [feedback, setFeedback] = useState<string>('');
+  const [error, setError] = useState<string>('');
   const [keyFlash, setKeyFlash] = useState<KeyFlash | null>(null);
   const flashTimer = useRef<number | null>(null);
   const detectorRef = useRef<LiveDetector | null>(null);
@@ -95,6 +97,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     setMistakes(0);
     setLastHeard('—');
     setFeedback('');
+    setError('');
 
     // Prepare the feedback sampler (load samples once; the click gesture
     // unlocks the audio context).
@@ -121,7 +124,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
       setRunning(true);
     } catch (err) {
       console.error(err);
-      alert('Microphone access failed. Grant mic permission and try again.');
+      setError('Microphone access failed. Grant mic permission and try again.');
       detectorRef.current = null;
     }
     setStarting(false);
@@ -216,6 +219,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
       )}
 
       {starting && <p className="hint">Loading model and requesting microphone…</p>}
+      {error && <ErrorBanner message={error} />}
 
       {(running || done) && (
         <>

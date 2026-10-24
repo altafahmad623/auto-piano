@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { calibrationRange, type DeviceProfile } from '../calibration';
 import { Keyboard } from './Keyboard';
+import { ErrorBanner } from './ErrorBanner';
 import type { NoteEvent } from '../types';
 import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
@@ -22,6 +23,7 @@ export function CalibrateView({ onDone }: Props) {
   const [keyIdx, setKeyIdx] = useState(0);
   const [offsets, setOffsets] = useState<Record<number, number>>({});
   const [lastHeard, setLastHeard] = useState<string>('—');
+  const [error, setError] = useState<string>('');
   const [skipped, setSkipped] = useState<Set<number>>(new Set());
   const detectorRef = useRef<LiveDetector | null>(null);
 
@@ -43,6 +45,7 @@ export function CalibrateView({ onDone }: Props) {
     setOffsets({});
     setSkipped(new Set());
     setStarting(true);
+    setError('');
 
     const detector = new LiveDetector((onset: NoteOnset) => {
       setLastHeard(midiToName(onset.midi));
@@ -60,7 +63,7 @@ export function CalibrateView({ onDone }: Props) {
       setRunning(true);
     } catch (err) {
       console.error(err);
-      alert('Microphone access failed. Grant mic permission and try again.');
+      setError('Microphone access failed. Grant mic permission and try again.');
       detectorRef.current = null;
     }
     setStarting(false);
@@ -140,6 +143,7 @@ export function CalibrateView({ onDone }: Props) {
       )}
 
       {starting && <p className="hint">Loading model and requesting microphone…</p>}
+      {error && <ErrorBanner message={error} />}
 
       {running && (
         <>

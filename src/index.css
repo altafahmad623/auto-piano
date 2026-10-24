@@ -168,6 +168,15 @@ select {
   margin-bottom: 12px;
 }
 
+.error-banner {
+  background: var(--panel);
+  border: 1px solid var(--bad);
+  border-radius: 10px;
+  color: var(--bad);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
 .keyboard-wrap {
   display: flex;
   justify-content: center;
