@@ -1,122 +1,55 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useMemo, useState } from 'react';
+import { saveProfile, type DeviceProfile } from './calibration';
+import { CalibrateView } from './components/CalibrateView';
+import { ListenView } from './components/ListenView';
+import { PracticeView } from './components/PracticeView';
+import { SongList } from './components/SongList';
+import { loadSongs } from './library';
+import type { Song } from './types';
 
-function App() {
-  const [count, setCount] = useState(0)
+type View =
+  | { name: 'library' }
+  | { name: 'listen'; song: Song }
+  | { name: 'practice'; song: Song }
+  | { name: 'calibrate'; from: 'library' | 'practice'; song?: Song };
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+export default function App() {
+  const songs = useMemo(() => loadSongs(), []);
+  const [view, setView] = useState<View>({ name: 'library' });
 
-      <div className="ticks"></div>
+  const calibrateDone = (profile: DeviceProfile | null) => {
+    if (profile) saveProfile(profile);
+    if (view.name === 'calibrate') {
+      if (view.from === 'practice' && view.song) {
+        setView({ name: 'practice', song: view.song });
+      } else {
+        setView({ name: 'library' });
+      }
+    }
+  };
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  switch (view.name) {
+    case 'library':
+      return (
+        <SongList
+          songs={songs}
+          onListen={(song) => setView({ name: 'listen', song })}
+          onPractice={(song) => setView({ name: 'practice', song })}
+          onCalibrate={() => setView({ name: 'calibrate', from: 'library' })}
+        />
+      );
+    case 'listen':
+      return <ListenView song={view.song} onBack={() => setView({ name: 'library' })} />;
+    case 'practice':
+      return (
+        <PracticeView
+          song={view.song}
+          key={view.song.title}
+          onBack={() => setView({ name: 'library' })}
+          onCalibrate={() => setView({ name: 'calibrate', from: 'practice', song: view.song })}
+        />
+      );
+    case 'calibrate':
+      return <CalibrateView onDone={calibrateDone} />;
+  }
 }
-
-export default App

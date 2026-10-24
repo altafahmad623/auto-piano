@@ -1,32 +1,61 @@
-# React + TypeScript + Vite
+# Auto Piano
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Web app that listens to your real piano through the microphone and teaches you
+songs note by note. Play the right note → the cursor advances. Also plays the
+song back for you (listen mode).
 
-Currently, two official plugins are available:
+## Modes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Library** — browse songs from the `songs/` directory.
+- **Listen** — the app plays the song with sampled piano while highlighting notes.
+- **Practice** — pick a hand (R/L), play your piano; detected notes advance the
+  cursor. Chords require all members. Wrong notes count as mistakes. Order
+  matters, timing does not.
+- **Calibrate device** — optional. Play keys one by one in order; each key's
+  detected pitch is stored under a named device profile so the matcher accepts
+  how *your* instrument reads.
 
-## React Compiler
+## Pitch detection
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Polyphonic via Spotify's [basic-pitch](https://github.com/spotify/basic-pitch)
+model (TensorFlow.js, runs locally in the browser, ~1 MB). Chords and both
+hands are detected. Expect ~0.5 s detection latency.
 
-## Expanding the Oxlint configuration
+## Song file format
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Text files in `songs/`:
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+Key: A minor
+Beat: 3|4
+Tempo: 120
+R: ED# ED# EB DC | A - - | C E A |
+L: | A E A | |
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Rules:
+
+- `Key`, `Beat` (measures|beat-unit), `Tempo` (BPM) headers. Only `Tempo`
+  affects playback.
+- `R:` / `L:` lines hold the right/left hand notes. Lines pair up in order;
+  both lines of a pair occupy the same measures. A missing line rests.
+- Tokens are whitespace-separated; `|` is a measure boundary.
+- A token is one or more glued letters: `ED#` = E then D# (sequential, one
+  step each). A step is one eighth note at `Tempo`.
+- `[CEG]` is a chord: C, E, G together (one step).
+- `-` holds the previous note of that hand for one step.
+- Optional octave digit after a letter: `E5`. Defaults: R hand octave 4,
+  L hand octave 3.
+
+Example: `songs/fur-elise.txt`.
+
+## Development
+
+```sh
+npm install
+npm run dev      # http://localhost:5173 (mic requires localhost or HTTPS)
+npm test         # parser unit tests (vitest)
+```
+
+The piano samples for listen mode are fetched from
+`https://tonejs.github.io/audio/salamander/` at runtime.

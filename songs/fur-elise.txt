@@ -1,0 +1,9 @@
+Key: A minor
+Beat: 3|4
+Tempo: 120
+R: ED# ED# EB DC | A - - | C E A |
+L: | A E A | |
+R: B - - - | E G# B | C - - |
+L: E E G# | | A E A |
+R: E ED# ED# EB DC | A - - | C E A |
+L: | A E A | |
