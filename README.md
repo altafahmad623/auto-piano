@@ -10,7 +10,10 @@ song back for you (listen mode).
 - **Listen** — the app plays the song with sampled piano while highlighting notes.
 - **Practice** — pick a hand (R/L), play your piano; detected notes advance the
   cursor. Chords require all members. Wrong notes count as mistakes. Order
-  matters, timing does not.
+  matters, timing does not. Input source: microphone (real piano) or computer
+  keyboard. Accepted notes play a piano tone as feedback.
+- **Free play** — jam on the computer keyboard with piano sounds (a = C4,
+  interleaved mapping: `a w s e d f t g y h u j k o l p ;`).
 - **Calibrate device** — optional. Play keys one by one in order; each key's
   detected pitch is stored under a named device profile so the matcher accepts
   how *your* instrument reads.

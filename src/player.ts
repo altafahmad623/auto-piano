@@ -13,6 +13,16 @@ const SALAMANDER_NOTES = [
   'A6', 'C7', 'D#7', 'F#7', 'A7', 'C8',
 ];
 
+/** Shared sampled-piano instrument; call from a user gesture (Tone.start). */
+export function createPianoSampler(): Tone.Sampler {
+  return new Tone.Sampler({
+    // The Salamander CDN names sharp files with 's', e.g. "Ds1.mp3".
+    urls: Object.fromEntries(SALAMANDER_NOTES.map((n) => [n, `${n.replace('#', 's')}.mp3`])),
+    baseUrl: SALAMANDER_BASE,
+    release: '2s',
+  }).toDestination();
+}
+
 export interface ListenSession {
   stop(): void;
   /** Current cursor position in steps; -1 before first note. */
@@ -32,12 +42,7 @@ export async function startListenSession(
   const hands = options.hands ?? ['R', 'L'];
   const stepDur = stepDuration(song);
 
-  const sampler = new Tone.Sampler({
-    // The Salamander CDN names sharp files with 's', e.g. "Ds1.mp3".
-    urls: Object.fromEntries(SALAMANDER_NOTES.map((n) => [n, `${n.replace('#', 's')}.mp3`])),
-    baseUrl: SALAMANDER_BASE,
-    release: '2s',
-  }).toDestination();
+  const sampler = createPianoSampler();
 
   return new Promise((resolve, reject) => {
     const partEvents = song.events

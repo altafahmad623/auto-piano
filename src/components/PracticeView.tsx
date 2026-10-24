@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import * as Tone from 'tone';
 import { deleteProfile, listProfiles, type DeviceProfile } from '../calibration';
+import { KeyboardInput } from '../keyboardInput';
 import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
 import { PracticeMatcher } from '../matcher';
+import { createPianoSampler } from '../player';
 import type { Hand, Song } from '../types';
 import { eventRange, Keyboard, type KeyFlash } from './Keyboard';
 
@@ -14,6 +17,7 @@ interface Props {
 
 export function PracticeView({ song, onBack, onCalibrate }: Props) {
   const [hand, setHand] = useState<Hand>('R');
+  const [inputSource, setInputSource] = useState<'mic' | 'keyboard'>('mic');
   const [profiles, setProfiles] = useState<DeviceProfile[]>(() => listProfiles());
   const [profileName, setProfileName] = useState<string>(''); // '' = no profile
   const [running, setRunning] = useState(false);
@@ -26,6 +30,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
   const [keyFlash, setKeyFlash] = useState<KeyFlash | null>(null);
   const flashTimer = useRef<number | null>(null);
   const detectorRef = useRef<LiveDetector | null>(null);
+  const samplerRef = useRef<Tone.Sampler | null>(null);
 
   const profile = profiles.find((p) => p.name === profileName);
 
@@ -58,6 +63,30 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     setStarting(false);
   }
 
+  function feedMatch(m: PracticeMatcher, midi: number, now: number) {
+    setLastHeard(midiToName(midi));
+    const result = m.feed(midi, now);
+    if (result === 'hit' || result === 'chord-progress') {
+      flash(midi, 'hit');
+      // Audible confirmation of the accepted note.
+      samplerRef.current?.triggerAttackRelease(
+        Tone.Frequency(midi, 'midi').toFrequency(),
+        0.8,
+      );
+    }
+    if (result === 'hit') {
+      setIdx(Math.round(m.progress * m.total));
+      setFeedback('');
+      if (m.done) {
+        stop();
+      }
+    } else if (result === 'miss') {
+      flash(midi, 'miss');
+      setMistakes(m.mistakeCount);
+      setFeedback(`Expected ${m.current?.midis.map(midiToName).join(' + ')}`);
+    }
+  }
+
   async function start() {
     setStarting(true);
     const m = new PracticeMatcher(song, hand, profile);
@@ -67,25 +96,23 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     setLastHeard('—');
     setFeedback('');
 
+    // Prepare the feedback sampler (load samples once; the click gesture
+    // unlocks the audio context).
+    if (!samplerRef.current) {
+      void Tone.start().then(() => {
+        samplerRef.current = createPianoSampler();
+        return Tone.loaded();
+      });
+    }
+
+    if (inputSource === 'keyboard') {
+      setRunning(true);
+      setStarting(false);
+      return;
+    }
+
     const detector = new LiveDetector((onset: NoteOnset) => {
-      setLastHeard(midiToName(onset.midi));
-      const result = m.feed(onset.midi, onset.time);
-      if (result === 'hit' || result === 'chord-progress') {
-        flash(onset.midi, 'hit');
-      }
-      if (result === 'hit') {
-        setIdx(Math.round(m.progress * m.total));
-        setFeedback('');
-        if (m.done) {
-          detectorRef.current?.stop();
-          detectorRef.current = null;
-          setRunning(false);
-        }
-      } else if (result === 'miss') {
-        flash(onset.midi, 'miss');
-        setMistakes(m.mistakeCount);
-        setFeedback(`Expected ${m.current?.midis.map(midiToName).join(' + ')}`);
-      }
+      feedMatch(m, onset.midi, onset.time);
     });
     detectorRef.current = detector;
 
@@ -99,6 +126,17 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     }
     setStarting(false);
   }
+
+  // Computer-keyboard input during practice.
+  useEffect(() => {
+    if (!running || inputSource !== 'keyboard' || !matcher) return;
+    const input = new KeyboardInput((midi, key) => {
+      void key;
+      feedMatch(matcher, midi, performance.now() / 1000);
+    });
+    input.start();
+    return () => input.stop();
+  }, [running, inputSource, matcher]);
 
   function skip() {
     matcher?.skip();
@@ -135,6 +173,16 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
             <select value={hand} onChange={(e) => setHand(e.target.value as Hand)}>
               <option value="R">Right (R)</option>
               <option value="L">Left (L)</option>
+            </select>
+          </label>
+          <label>
+            Input source{' '}
+            <select
+              value={inputSource}
+              onChange={(e) => setInputSource(e.target.value as 'mic' | 'keyboard')}
+            >
+              <option value="mic">Microphone (real piano)</option>
+              <option value="keyboard">Computer keyboard (a=C4)</option>
             </select>
           </label>
           <label>
