@@ -237,7 +237,9 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
           <div className="big-note">
             {current ? current.midis.map(midiToName).join(' + ') : 'Done!'}
           </div>
-          <div className="heard">Heard: {lastHeard}</div>
+          <div className="heard">
+            Heard <InfoTip tip="The last note the app detected from your piano. If this shows a different note than you played, a device profile can correct it." />: {lastHeard}
+          </div>
           {feedback && <div className="feedback">{feedback}</div>}
           <div className="keyboard-wrap">
             <Keyboard
@@ -256,6 +258,14 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
             </span>
             <span>Mistakes: {mistakes}</span>
           </div>
+          {(running || done) && (
+            <div className="progress-track" aria-hidden="true">
+              <div
+                className="progress-fill"
+                style={{ width: `${((done ? playable.length : idx) / playable.length) * 100}%` }}
+              />
+            </div>
+          )}
           {running && (
             <div className="actions-row">
               <button className="secondary" onClick={skip}>

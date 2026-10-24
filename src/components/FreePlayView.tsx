@@ -45,9 +45,9 @@ export function FreePlayView({ onBack }: Props) {
       <header className="view-header">
         <button className="secondary" onClick={onBack}>← Library</button>
         <h2>Free play</h2>
-        <span className="hint">a = C4 · interleaved mapping</span>
       </header>
       <div className="big-note">{lastNote}</div>
+      <p className="hint">a = C4 · w e t y u o p · interleaved mapping</p>
       {!loaded && <p className="hint">Loading piano samples…</p>}
       <div className="keyboard-wrap">
         <Keyboard

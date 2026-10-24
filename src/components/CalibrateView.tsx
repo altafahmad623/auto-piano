@@ -133,14 +133,14 @@ export function CalibrateView({ onDone }: Props) {
               ))}
             </select>
           </label>
-          <button className="primary" onClick={start}>
-            Start calibration
-          </button>
           <p className="hint">
             Play the shown keys one by one, in order. Each key you play is recorded
             so practice still counts even if your piano reads as a different pitch.
             Skip any key you can't play.
           </p>
+          <button className="primary" onClick={start}>
+            Start calibration
+          </button>
         </div>
       )}
 

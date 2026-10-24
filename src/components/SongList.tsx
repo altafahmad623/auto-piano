@@ -20,6 +20,11 @@ export function SongList({ songs, onListen, onPractice, onCalibrate, onFreePlay 
           </button>
         </div>
       </header>
+      <p className="hero-hint">
+        Play your real piano — the app listens and follows along. Free play uses
+        the computer keyboard instead. Calibrate teaches the app how your piano
+        actually sounds.
+      </p>
       {songs.length === 0 && (
         <p className="empty-hint">No songs found. Drop a .txt file into the songs/ directory.</p>
       )}
