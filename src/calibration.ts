@@ -1,8 +1,11 @@
 /**
  * Device profiles: the user plays keys one by one in order, we record what the
- * detector hears for each expected key. Stored in localStorage per named device.
- * `offsets[expectedMidi] = detectedMidi` — used by the matcher to accept a
- * note when the user's piano reads consistently as a different pitch.
+ * detector hears for each expected key. `offsets[expectedMidi] = detectedMidi`
+ * — used by the matcher to accept a note when the user's piano reads
+ * consistently as a different pitch.
+ *
+ * Profiles live in the async ProfileStore (src/profileStore.ts); listProfiles
+ * below only reads the legacy localStorage array for one-time migration.
  */
 export interface DeviceProfile {
   name: string;
@@ -13,6 +16,7 @@ export interface DeviceProfile {
 
 const STORAGE_KEY = 'auto-piano-device-profiles';
 
+/** Legacy localStorage reader — used only by migrateLocalProfiles(). */
 export function listProfiles(): DeviceProfile[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -22,19 +26,6 @@ export function listProfiles(): DeviceProfile[] {
   } catch {
     return [];
   }
-}
-
-export function saveProfile(profile: DeviceProfile): void {
-  const profiles = listProfiles().filter((p) => p.name !== profile.name);
-  profiles.push(profile);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-}
-
-export function deleteProfile(name: string): void {
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(listProfiles().filter((p) => p.name !== name)),
-  );
 }
 
 /** MIDI for a note name like "C4" — used for calibration key guides. */

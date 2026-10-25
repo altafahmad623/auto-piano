@@ -14,6 +14,9 @@ import { listProfiles, type DeviceProfile } from './calibration'
 
 export const PROFILE_VERSION = 1
 
+/** App-wide store: the /api/profiles middleware in vite dev/preview. */
+export const profileStore = httpProfileStore()
+
 /** Profiles plus human-readable notes about stored entries we had to skip. */
 export interface ProfileListResult {
   profiles: DeviceProfile[]

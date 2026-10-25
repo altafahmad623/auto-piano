@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Route,
   Routes,
@@ -6,14 +6,16 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
-import { saveProfile, type DeviceProfile } from './calibration';
+import type { DeviceProfile } from './calibration';
 import { CalibrateView } from './components/CalibrateView';
+import { ErrorBanner } from './components/ErrorBanner';
 import { FreePlayView } from './components/FreePlayView';
 import { ListenView } from './components/ListenView';
 import { NotFoundView } from './components/NotFoundView';
 import { PracticeView } from './components/PracticeView';
 import { SongList } from './components/SongList';
 import { loadSongs } from './library';
+import { migrateLocalProfiles, profileStore } from './profileStore';
 import type { Song } from './types';
 
 /** Looks up the song for the current route's :songId param. */
@@ -49,20 +51,42 @@ function isInternalPath(path: string | null): path is string {
 function CalibrateRoute() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const [saveError, setSaveError] = useState('');
   const returnTo = params.get('returnTo');
 
   return (
-    <CalibrateView
-      onDone={(profile: DeviceProfile | null) => {
-        if (profile) saveProfile(profile);
-        navigate(isInternalPath(returnTo) ? returnTo : '/');
-      }}
-    />
+    <>
+      {saveError && <ErrorBanner message={saveError} />}
+      <CalibrateView
+        onDone={(profile: DeviceProfile | null) => {
+          const goHome = () => navigate(isInternalPath(returnTo) ? returnTo : '/');
+          if (!profile) {
+            goHome();
+            return;
+          }
+          // Stay on the page (banner explains why) if the save fails, so the
+          // profile is not silently lost.
+          profileStore
+            .save(profile)
+            .then(goHome)
+            .catch((err: Error) => setSaveError(`Saving profile failed: ${err.message}`));
+        }}
+      />
+    </>
   );
 }
 
 export default function App() {
   const songs = useMemo(() => loadSongs(), []);
+
+  useEffect(() => {
+    // One-time: copy legacy localStorage profiles into the durable store.
+    // The legacy key is left in place (see plan 004 §2).
+    void migrateLocalProfiles(profileStore).then(({ errors }) => {
+      if (errors.length > 0) console.warn('[profiles] migration issues:', errors);
+    });
+  }, []);
+
   return (
     <Routes>
       <Route path="/" element={<SongList songs={songs} />} />

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as Tone from 'tone';
-import { deleteProfile, listProfiles, type DeviceProfile } from '../calibration';
+import { type DeviceProfile } from '../calibration';
 import { KeyboardInput } from '../keyboardInput';
 import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
 import { PracticeMatcher } from '../matcher';
+import { profileStore } from '../profileStore';
 import { createPianoSampler } from '../player';
 import type { Hand, Song } from '../types';
 import { eventRange, Keyboard, type KeyFlash } from './Keyboard';
@@ -20,7 +21,7 @@ export function PracticeView({ song }: Props) {
   const navigate = useNavigate();
   const [hand, setHand] = useState<Hand>('R');
   const [inputSource, setInputSource] = useState<'mic' | 'keyboard'>('mic');
-  const [profiles, setProfiles] = useState<DeviceProfile[]>(() => listProfiles());
+  const [profiles, setProfiles] = useState<DeviceProfile[]>([]);
   const [profileName, setProfileName] = useState<string>(''); // '' = no profile
   const [running, setRunning] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -50,6 +51,26 @@ export function PracticeView({ song }: Props) {
     return () => {
       detectorRef.current?.stop();
       if (flashTimer.current !== null) clearTimeout(flashTimer.current);
+    };
+  }, []);
+
+  // Profiles come from the async store (repo-local files via the dev-server
+  // middleware, so they survive origin/port changes). Corrupt entries are
+  // reported, not hidden.
+  useEffect(() => {
+    let cancelled = false;
+    profileStore
+      .list()
+      .then(({ profiles: stored, errors }) => {
+        if (cancelled) return;
+        setProfiles(stored);
+        if (errors.length > 0) setError(errors.join(' · '));
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(`Loading profiles failed: ${err.message}`);
+      });
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -227,9 +248,14 @@ export function PracticeView({ song }: Props) {
               <button
                 className="secondary"
                 onClick={() => {
-                  deleteProfile(profile.name);
-                  setProfiles(listProfiles());
-                  setProfileName('');
+                  void profileStore
+                    .delete(profile.name)
+                    .then(() => profileStore.list())
+                    .then(({ profiles: stored }) => {
+                      setProfiles(stored);
+                      setProfileName('');
+                    })
+                    .catch((err: Error) => setError(`Deleting profile failed: ${err.message}`));
                 }}
               >
                 Delete “{profile.name}”
