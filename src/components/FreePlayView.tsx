@@ -1,16 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as Tone from 'tone';
 import { midiToName } from '../parser';
 import { createPianoSampler } from '../player';
 import { KeyboardInput } from '../keyboardInput';
 import { Keyboard, type KeyFlash } from './Keyboard';
 
-interface Props {
-  onBack: () => void;
-}
-
 /** Jam on the computer keyboard (a=C4, interleaved mapping) with piano sounds. */
-export function FreePlayView({ onBack }: Props) {
+export function FreePlayView() {
+  const navigate = useNavigate();
   const [loaded, setLoaded] = useState(false);
   const [flash, setFlash] = useState<KeyFlash | null>(null);
   const [lastNote, setLastNote] = useState('—');
@@ -43,7 +41,7 @@ export function FreePlayView({ onBack }: Props) {
   return (
     <div className="view">
       <header className="view-header">
-        <button className="secondary" onClick={onBack}>← Library</button>
+        <button className="secondary" onClick={() => navigate('/')}>← Library</button>
         <h2>Free play</h2>
       </header>
       <div className="big-note">{lastNote}</div>

@@ -13,6 +13,8 @@ export interface NoteEvent {
 }
 
 export interface Song {
+  /** Slug from the song's filename, e.g. 'fur-elise' — used in URLs. */
+  id: string;
   title: string;
   key: string;
   beatsPerMeasure: number;

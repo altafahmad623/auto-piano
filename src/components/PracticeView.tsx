@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as Tone from 'tone';
 import { deleteProfile, listProfiles, type DeviceProfile } from '../calibration';
 import { KeyboardInput } from '../keyboardInput';
@@ -13,11 +14,10 @@ import { InfoTip } from './InfoTip';
 
 interface Props {
   song: Song;
-  onBack: () => void;
-  onCalibrate: () => void;
 }
 
-export function PracticeView({ song, onBack, onCalibrate }: Props) {
+export function PracticeView({ song }: Props) {
+  const navigate = useNavigate();
   const [hand, setHand] = useState<Hand>('R');
   const [inputSource, setInputSource] = useState<'mic' | 'keyboard'>('mic');
   const [profiles, setProfiles] = useState<DeviceProfile[]>(() => listProfiles());
@@ -169,7 +169,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
           className="secondary"
           onClick={() => {
             stop();
-            onBack();
+            navigate('/');
           }}
         >
           ← Library
@@ -220,7 +220,9 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
             </select>
           </div>
           <div className="actions-row">
-            <button onClick={onCalibrate}>Calibrate new device…</button>
+            <button onClick={() => navigate(`/calibrate?returnTo=/practice/${song.id}`)}>
+              Calibrate new device…
+            </button>
             {profile && (
               <button
                 className="secondary"
@@ -290,7 +292,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
           {done && (
             <div className="actions-row">
               <button onClick={start}>Practice again</button>
-              <button className="secondary" onClick={onBack}>
+              <button className="secondary" onClick={() => navigate('/')}>
                 ← Library
               </button>
             </div>

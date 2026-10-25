@@ -1,21 +1,19 @@
+import { useNavigate } from 'react-router-dom';
 import type { Song } from '../types';
 
 interface Props {
   songs: Song[];
-  onListen: (song: Song) => void;
-  onPractice: (song: Song) => void;
-  onCalibrate: () => void;
-  onFreePlay: () => void;
 }
 
-export function SongList({ songs, onListen, onPractice, onCalibrate, onFreePlay }: Props) {
+export function SongList({ songs }: Props) {
+  const navigate = useNavigate();
   return (
     <div className="song-list">
       <header className="app-header">
         <h1>Auto Piano</h1>
         <div className="song-actions">
-          <button onClick={onFreePlay}>Free play</button>
-          <button className="secondary" onClick={onCalibrate}>
+          <button onClick={() => navigate('/free-play')}>Free play</button>
+          <button className="secondary" onClick={() => navigate('/calibrate')}>
             Calibrate device
           </button>
         </div>
@@ -30,7 +28,7 @@ export function SongList({ songs, onListen, onPractice, onCalibrate, onFreePlay 
       )}
       <ul>
         {songs.map((song) => (
-          <li key={song.title} className="song-row">
+          <li key={song.id} className="song-row">
             <div className="song-info">
               <strong>{song.title}</strong>
               <span className="song-meta">
@@ -38,8 +36,8 @@ export function SongList({ songs, onListen, onPractice, onCalibrate, onFreePlay 
               </span>
             </div>
             <div className="song-actions">
-              <button onClick={() => onListen(song)}>Listen</button>
-              <button onClick={() => onPractice(song)}>Practice</button>
+              <button onClick={() => navigate(`/listen/${song.id}`)}>Listen</button>
+              <button onClick={() => navigate(`/practice/${song.id}`)}>Practice</button>
             </div>
           </li>
         ))}

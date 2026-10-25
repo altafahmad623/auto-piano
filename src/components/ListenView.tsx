@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { startListenSession } from '../player';
 import type { ListenSession } from '../player';
 import type { Song } from '../types';
@@ -7,10 +8,10 @@ import { ErrorBanner } from './ErrorBanner';
 
 interface Props {
   song: Song;
-  onBack: () => void;
 }
 
-export function ListenView({ song, onBack }: Props) {
+export function ListenView({ song }: Props) {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<'idle' | 'loading' | 'playing' | 'ended'>('idle');
   const [cursorStep, setCursorStep] = useState(0);
   const [error, setError] = useState<string>('');
@@ -67,7 +68,7 @@ export function ListenView({ song, onBack }: Props) {
           className="secondary"
           onClick={() => {
             stop();
-            onBack();
+            navigate('/');
           }}
         >
           ← Library

@@ -94,7 +94,8 @@ function splitMeasures(tokens: string[]): string[][] {
 
 const OCTAVE_DEFAULT: Record<Hand, number> = { R: 4, L: 3 };
 
-export function parseSong(raw: string, title: string): Song {
+/** Parses a song's text; the caller (library.ts) assigns the id from the filename. */
+export function parseSong(raw: string, title: string): Omit<Song, 'id'> {
   let key = 'unknown';
   let beatsPerMeasure = 4;
   let beatUnit = 4;
