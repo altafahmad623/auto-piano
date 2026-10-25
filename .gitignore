@@ -25,3 +25,6 @@ dist-ssr
 
 # Playwright MCP artifacts
 .playwright-mcp/
+
+# Device profiles written by the dev-server /api/profiles middleware
+profiles/
