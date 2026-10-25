@@ -115,8 +115,10 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
       return;
     }
 
-    const detector = new LiveDetector((onset: NoteOnset) => {
-      feedMatch(m, onset.midi, onset.time);
+    const detector = new LiveDetector({
+      onNote: (onset: NoteOnset) => {
+        feedMatch(m, onset.midi, onset.time);
+      },
     });
     detectorRef.current = detector;
 

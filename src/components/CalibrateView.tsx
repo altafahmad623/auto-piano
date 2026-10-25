@@ -7,6 +7,13 @@ import { LiveDetector, type NoteOnset } from '../detector';
 import { midiToName } from '../parser';
 import { InfoTip } from './InfoTip';
 
+/** Map RMS to a 0-100 bar percentage on a -60..-20 dB scale. */
+function meterPct(rms: number): number {
+  if (rms <= 0) return 0;
+  const db = 20 * Math.log10(rms);
+  return Math.max(0, Math.min(100, ((db + 60) / 40) * 100));
+}
+
 interface Props {
   onDone: (profile: DeviceProfile | null) => void;
 }
@@ -24,6 +31,8 @@ export function CalibrateView({ onDone }: Props) {
   const [keyIdx, setKeyIdx] = useState(0);
   const [offsets, setOffsets] = useState<Record<number, number>>({});
   const [lastHeard, setLastHeard] = useState<string>('—');
+  const [level, setLevel] = useState(0);
+  const [guess, setGuess] = useState<string | null>(null);
   const [error, setError] = useState<string>('');
   const [skipped, setSkipped] = useState<Set<number>>(new Set());
   const detectorRef = useRef<LiveDetector | null>(null);
@@ -48,15 +57,19 @@ export function CalibrateView({ onDone }: Props) {
     setStarting(true);
     setError('');
 
-    const detector = new LiveDetector((onset: NoteOnset) => {
-      setLastHeard(midiToName(onset.midi));
-      setKeyIdx((i) => {
-        if (i >= keys.length) return i;
-        const expected = keys[i];
-        setOffsets((prev) => ({ ...prev, [expected]: onset.midi }));
-        return i + 1;
-      });
-    });
+    const detector = new LiveDetector({
+      onNote: (onset: NoteOnset) => {
+        setLastHeard(midiToName(onset.midi));
+        setKeyIdx((i) => {
+          if (i >= keys.length) return i;
+          const expected = keys[i];
+          setOffsets((prev) => ({ ...prev, [expected]: onset.midi }));
+          return i + 1;
+        });
+      },
+      onLevel: setLevel,
+      onGuess: (midi) => setGuess(midi === null ? null : midiToName(midi)),
+    }, { requireGuessAgreement: true });
     detectorRef.current = detector;
 
     try {
@@ -150,7 +163,15 @@ export function CalibrateView({ onDone }: Props) {
       {running && (
         <>
           <div className="big-note">{expectedName ?? 'Done!'}</div>
-          <div className="heard">Heard: {lastHeard}</div>
+          <div className="meter" aria-label="Microphone input level">
+            <div
+              className="meter-fill"
+              style={{ width: `${meterPct(level)}%` }}
+            />
+          </div>
+          <div className="heard">
+            Guess: {guess ?? '—'} · Heard: {lastHeard}
+          </div>
           <div className="keyboard-wrap">
             <Keyboard
               lo={lo}

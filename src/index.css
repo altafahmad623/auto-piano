@@ -181,6 +181,22 @@ select {
   margin-bottom: 12px;
 }
 
+.meter {
+  width: 220px;
+  height: 8px;
+  margin: 0 auto 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--muted) 25%, transparent);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--good);
+  transition: width 80ms linear;
+}
+
 .feedback {
   text-align: center;
   color: var(--bad);
