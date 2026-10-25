@@ -66,16 +66,21 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     setStarting(false);
   }
 
-  function feedMatch(m: PracticeMatcher, midi: number, now: number) {
-    setLastHeard(midiToName(midi));
-    const result = m.feed(midi, now);
+  function feedMatch(m: PracticeMatcher, midi: number, now: number, confirmed: boolean) {
+    const result = m.feed(midi, now, confirmed);
+    // Only show pitches that were part of the verdict: noise/hallucination
+    // onsets (ignored) must not touch the "Heard" display.
+    if (result !== 'ignored') setLastHeard(midiToName(midi));
     if (result === 'hit' || result === 'chord-progress') {
       flash(midi, 'hit');
-      // Audible confirmation of the accepted note.
-      samplerRef.current?.triggerAttackRelease(
-        Tone.Frequency(midi, 'midi').toFrequency(),
-        0.8,
-      );
+      // Audible confirmation only for computer-keyboard input — with the
+      // mic, the sampler's own sound would feed back into the detector.
+      if (inputSource === 'keyboard') {
+        samplerRef.current?.triggerAttackRelease(
+          Tone.Frequency(midi, 'midi').toFrequency(),
+          0.8,
+        );
+      }
     }
     if (result === 'hit') {
       setIdx(Math.round(m.progress * m.total));
@@ -100,9 +105,10 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     setFeedback('');
     setError('');
 
-    // Prepare the feedback sampler (load samples once; the click gesture
-    // unlocks the audio context).
-    if (!samplerRef.current) {
+    // Computer-keyboard input plays the pressed note through the sampler
+    // (there is no mic to feed it back into). Mic input stays silent: the
+    // app's own sound would be re-detected.
+    if (inputSource === 'keyboard' && !samplerRef.current) {
       void Tone.start().then(() => {
         samplerRef.current = createPianoSampler();
         return Tone.loaded();
@@ -117,7 +123,10 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
 
     const detector = new LiveDetector({
       onNote: (onset: NoteOnset) => {
-        feedMatch(m, onset.midi, onset.time);
+        // Unconfirmed onsets still go to the matcher — chord members other
+        // than the dominant note arrive unconfirmed — the matcher decides
+        // whether they count (chord-progress vs ignored/miss).
+        feedMatch(m, onset.midi, onset.time, onset.confirmed);
       },
     });
     detectorRef.current = detector;
@@ -138,7 +147,7 @@ export function PracticeView({ song, onBack, onCalibrate }: Props) {
     if (!running || inputSource !== 'keyboard' || !matcher) return;
     const input = new KeyboardInput((midi, key) => {
       void key;
-      feedMatch(matcher, midi, performance.now() / 1000);
+      feedMatch(matcher, midi, performance.now() / 1000, true);
     });
     input.start();
     return () => input.stop();

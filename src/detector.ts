@@ -6,7 +6,7 @@ import { midiToName } from './parser';
 const MODEL_BASE_MIDI = 21;
 
 /**
- * Temporary diagnostics: "name=<max score>, ..." for the top-scoring bins of a
+ * Debug diagnostics: "name=<max score>, ..." for the top-scoring bins of a
  * posterior. Empty string when the model produced no frames.
  */
 function topBinsLog(label: string, arr: number[][]): string {
@@ -74,6 +74,13 @@ export interface NoteOnset {
   /** Seconds since the detector started. */
   time: number;
   amplitude: number;
+  /**
+   * True when the mono autocorrelation guess was stable on this pitch within
+   * GUESS_AGREE_SECONDS of the onset. Basic-pitch hallucinates low notes on
+   * near-silence with real-note amplitudes; the guess is the cross-check.
+   * Chords: only the dominant member will be confirmed (the guess is mono).
+   */
+  confirmed: boolean;
 }
 
 export interface LiveDetectorCallbacks {
@@ -97,15 +104,27 @@ const GUESS_STABLE_COUNT = 3;
 
 /** An onset is trusted only if a stable guess for the same pitch occurred within this many seconds. */
 const GUESS_AGREE_SECONDS = 1;
+/**
+ * Windows quieter than this RMS skip inference entirely. Observed room-noise
+ * RMS was 0.002–0.01; tune against a real-piano recording (soft presses must
+ * stay above it). See plan 004 §3ii.
+ */
+const WINDOW_MIN_RMS = 0.015;
 
-export interface LiveDetectorOptions {
-  /**
-   * Emit an onset only when the mono autocorrelation guess also settled on the
-   * same pitch around that time. Filters basic-pitch hallucinations on room
-   * noise, but only suits single-note input (chords would lose all but the
-   * dominant note). Requires `onGuess` to be provided.
-   */
-  requireGuessAgreement?: boolean;
+/** Diagnostics are logged only with localStorage.debugDetector = '1'. */
+function debugEnabled(): boolean {
+  try {
+    return localStorage.getItem('debugDetector') === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Root-mean-square of a sample buffer. */
+export function windowRms(buf: Float32Array): number {
+  let sum = 0;
+  for (const v of buf) sum += v * v;
+  return Math.sqrt(sum / buf.length);
 }
 
 /** True if `midi` was a stable guess within GUESS_AGREE_SECONDS of `time`. */
@@ -190,11 +209,9 @@ export class LiveDetector {
   private stableCount = 0;
   /** MIDI → last time (seconds since start) it was a stable guess. */
   private readonly guessSeen = new Map<number, number>();
-  private readonly opts: LiveDetectorOptions;
 
-  constructor(callbacks: LiveDetectorCallbacks, options: LiveDetectorOptions = {}) {
+  constructor(callbacks: LiveDetectorCallbacks) {
     this.cb = callbacks;
-    this.opts = options;
   }
 
   async start(): Promise<void> {
@@ -263,8 +280,9 @@ export class LiveDetector {
     this.levelCount = 0;
     this.cb.onLevel?.(rms);
 
-    if (!this.cb.onGuess) return;
-    // Require the same pitch on consecutive updates before showing it:
+    // Guess tracking runs even without an onGuess consumer: the `confirmed`
+    // flag on onsets (and the calibration gate) depend on guessSeen.
+    // Require the same pitch on consecutive updates before trusting it:
     // ambient noise produces random hits, a held note stays stable.
     if (rms < LEVEL_FLOOR) {
       this.stableGuess = null;
@@ -285,7 +303,7 @@ export class LiveDetector {
     }
     if (this.stableCount >= GUESS_STABLE_COUNT && midi !== null) {
       this.guessSeen.set(midi, now / 1000 - this.startedAt);
-      this.cb.onGuess(midi);
+      this.cb.onGuess?.(midi);
     }
   }
 
@@ -330,6 +348,12 @@ export class LiveDetector {
       const windowEndAbs = performance.now() / 1000 - this.startedAt;
       const inferStart = performance.now();
       const rate = this.audioCtx!.sampleRate;
+      const rms = windowRms(native);
+      if (rms < WINDOW_MIN_RMS) {
+        // Near-silence is where basic-pitch hallucinates; skip inference.
+        if (debugEnabled()) console.log(`[detector] rms ${rms.toFixed(4)} below floor, skipping inference`);
+        return;
+      }
       const resampled = resampleLinear(native, rate, TARGET_RATE);
 
       const frames: number[][] = [];
@@ -347,36 +371,34 @@ export class LiveDetector {
         outputToNotesPoly(frames, onsets, ONSET_THRESHOLD, FRAME_THRESHOLD, 2),
       );
       const inferMs = performance.now() - inferStart;
-      // Temporary diagnostics while tuning thresholds for real-piano input.
-      let rms = 0;
-      for (const v of native) rms += v * v;
-      rms = Math.sqrt(rms / native.length);
-      console.log(
-        `[detector] rms ${rms.toFixed(4)}, inference ${inferMs.toFixed(0)}ms, frames ${frames.length}, notes ${notes.length}` +
-          topBinsLog('onsets', onsets) +
-          topBinsLog('frames', frames) +
-          (notes.length > 0
-            ? `, detected ${notes
-                .map((n) => `${midiToName(n.pitchMidi)}@${n.startTimeSeconds.toFixed(2)}(${n.amplitude.toFixed(2)})`)
-                .join(' ')}`
-            : ''),
-      );
+      if (debugEnabled()) {
+        console.log(
+          `[detector] rms ${rms.toFixed(4)}, inference ${inferMs.toFixed(0)}ms, frames ${frames.length}, notes ${notes.length}` +
+            topBinsLog('onsets', onsets) +
+            topBinsLog('frames', frames) +
+            (notes.length > 0
+              ? `, detected ${notes
+                  .map((n) => `${midiToName(n.pitchMidi)}@${n.startTimeSeconds.toFixed(2)}(${n.amplitude.toFixed(2)})`)
+                  .join(' ')}`
+              : ''),
+        );
+      }
 
       const windowStartAbs = windowEndAbs - WINDOW_SECONDS;
-      const rejected: string[] = [];
+      const unconfirmed: string[] = [];
       for (const note of notes) {
         if (note.startTimeSeconds < WINDOW_SECONDS - FRESH_SECONDS) continue;
         const abs = windowStartAbs + note.startTimeSeconds;
         const last = this.lastEmitted.get(note.pitchMidi) ?? -Infinity;
         if (abs - last < DEDUP_SECONDS) continue;
-        if (this.opts.requireGuessAgreement && !guessAgrees(this.guessSeen, note.pitchMidi, abs)) {
-          rejected.push(`${midiToName(note.pitchMidi)}(${note.amplitude.toFixed(2)})`);
-          continue;
-        }
+        const confirmed = guessAgrees(this.guessSeen, note.pitchMidi, abs);
+        if (!confirmed) unconfirmed.push(`${midiToName(note.pitchMidi)}(${note.amplitude.toFixed(2)})`);
         this.lastEmitted.set(note.pitchMidi, abs);
-        this.cb.onNote({ midi: note.pitchMidi, time: abs, amplitude: note.amplitude });
+        this.cb.onNote({ midi: note.pitchMidi, time: abs, amplitude: note.amplitude, confirmed });
       }
-      if (rejected.length > 0) console.log(`[detector] rejected (no matching guess): ${rejected.join(' ')}`);
+      if (unconfirmed.length > 0 && debugEnabled()) {
+        console.log(`[detector] unconfirmed (no matching guess): ${unconfirmed.join(' ')}`);
+      }
     } finally {
       this.inferring = false;
     }

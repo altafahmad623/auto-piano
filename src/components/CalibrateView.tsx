@@ -60,6 +60,9 @@ export function CalibrateView({ onDone }: Props) {
     const detector = new LiveDetector({
       onNote: (onset: NoteOnset) => {
         setLastHeard(midiToName(onset.midi));
+        // Only a guess-confirmed onset advances: hallucinated low notes on
+        // near-silence have real-note amplitudes and would auto-fill keys.
+        if (!onset.confirmed) return;
         setKeyIdx((i) => {
           if (i >= keys.length) return i;
           const expected = keys[i];
@@ -69,7 +72,7 @@ export function CalibrateView({ onDone }: Props) {
       },
       onLevel: setLevel,
       onGuess: (midi) => setGuess(midi === null ? null : midiToName(midi)),
-    }, { requireGuessAgreement: true });
+    });
     detectorRef.current = detector;
 
     try {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guessAgrees, guessMidi, LiveDetector } from './detector';
+import { guessAgrees, guessMidi, LiveDetector, windowRms } from './detector';
 
 /** `n` samples of a sine wave at `hz`, at `rate`. */
 function sine(hz: number, rate: number, n: number): Float32Array {
@@ -97,5 +97,13 @@ describe('guessAgrees', () => {
   it('rejects an onset too far from the guess in time', () => {
     expect(guessAgrees(seen, 60, 11.5)).toBe(false);
     expect(guessAgrees(seen, 60, 8.5)).toBe(false);
+  });
+});
+
+describe('windowRms', () => {
+  it('is 0 for silence and ~amplitude/√2 for a sine', () => {
+    expect(windowRms(new Float32Array(1000))).toBe(0);
+    // 0.5-amplitude sine → rms ≈ 0.354
+    expect(windowRms(sine(261.63, 12000, 12000))).toBeCloseTo(0.354, 2);
   });
 });

@@ -2,16 +2,30 @@ import type { DeviceProfile } from './calibration';
 import type { Hand, NoteEvent, Song } from './types';
 
 /**
+ * After a hit, the same pitch must produce a new onset at least this many
+ * seconds later before it can satisfy the next event. Tunable against
+ * real-piano data (must stay well under the fastest legit repeated note).
+ */
+export const REARM_SECONDS = 0.5;
+
+/**
  * Order-based practice matching: the user's detected note onsets advance
  * through the expected events of the chosen hand. Timing is ignored.
- * Chords require all members (with optional per-key profile correction).
+ * Chords require all members (with optional per-key profile correction)
+ * plus at least one confirmed ("anchor") onset — the detector's mono guess
+ * only sees the dominant note of a chord, so the other members arrive
+ * unconfirmed. Single notes must themselves be confirmed.
  */
 export class PracticeMatcher {
   private readonly events: NoteEvent[];
   private idx = 0;
   private mistakes = 0;
   private readonly covered = new Set<number>();
+  /** True once a confirmed onset has been accepted for the current event. */
+  private anchored = false;
   private readonly lastMissAt = new Map<number, number>();
+  /** Pitch → time it last satisfied (hit) an event. */
+  private readonly lastHitAt = new Map<number, number>();
 
   private readonly profile?: DeviceProfile;
 
@@ -51,21 +65,34 @@ export class PracticeMatcher {
 
   /**
    * Feed one detected note onset (absolute time in seconds).
-   * Returns what happened so the UI can react.
+   * `confirmed` is the detector's guess-agreement flag; computer-keyboard
+   * input passes true. Returns what happened so the UI can react.
    */
-  feed(midi: number, now: number): 'hit' | 'chord-progress' | 'miss' | 'ignored' {
+  feed(midi: number, now: number, confirmed: boolean): 'hit' | 'chord-progress' | 'miss' | 'ignored' {
     const ev = this.current;
     if (!ev) return 'ignored';
 
+    // Re-arm: a pitch that just satisfied an event cannot satisfy the next
+    // one until REARM_SECONDS pass, so a decaying or re-detected note does
+    // not carry a repeated-pitch passage forward.
+    const lastHit = this.lastHitAt.get(midi) ?? -Infinity;
+    if (now - lastHit < REARM_SECONDS) return 'ignored';
+
     if (ev.midis.some((req) => this.accepts(req, midi))) {
       this.covered.add(midi);
+      if (confirmed) this.anchored = true;
       const satisfied = ev.midis.every((req) => this.isCovered(req));
-      if (satisfied) {
+      if (satisfied && this.anchored) {
+        for (const p of this.covered) this.lastHitAt.set(p, now);
         this.idx += 1;
         this.covered.clear();
+        this.anchored = false;
         return 'hit';
       }
-      return 'chord-progress';
+      // A single-note event waiting for its confirmed onset: an unconfirmed
+      // (possibly hallucinated) match must not flash or advance anything.
+      if (ev.midis.length > 1) return 'chord-progress';
+      return 'ignored';
     }
 
     // Wrong note. Debounce repeats of the same pitch so one held/ghost
@@ -90,5 +117,6 @@ export class PracticeMatcher {
   skip(): void {
     this.idx += 1;
     this.covered.clear();
+    this.anchored = false;
   }
 }
